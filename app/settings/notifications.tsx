@@ -14,8 +14,8 @@ export default function NotificationsSettings() {
   const { isDark } = useTheme();
   
   const [remindersEnabled, setRemindersEnabled] = useState(true);
-  const [randomNotificationsEnabled, setRandomNotificationsEnabled] = useState(false);
-  const [scheduledTextNotificationsEnabled, setScheduledTextNotificationsEnabled] = useState(false);
+  const [randomNotificationsEnabled, setRandomNotificationsEnabled] = useState(true);
+  const [scheduledTextNotificationsEnabled, setScheduledTextNotificationsEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
 
   const theme = {
@@ -38,16 +38,28 @@ export default function NotificationsSettings() {
       const saved = await AsyncStorage.getItem('notifications_reminders_enabled');
       if (saved !== null) {
         setRemindersEnabled(JSON.parse(saved));
+      } else {
+        // Default to enabled and save the preference
+        setRemindersEnabled(true);
+        await AsyncStorage.setItem('notifications_reminders_enabled', JSON.stringify(true));
       }
       
       const randomSaved = await AsyncStorage.getItem('notifications_random_enabled');
       if (randomSaved !== null) {
         setRandomNotificationsEnabled(JSON.parse(randomSaved));
+      } else {
+        // Default to enabled and save the preference
+        setRandomNotificationsEnabled(true);
+        await AsyncStorage.setItem('notifications_random_enabled', JSON.stringify(true));
       }
       
       const scheduledTextSaved = await AsyncStorage.getItem('notifications_scheduled_texts_enabled');
       if (scheduledTextSaved !== null) {
         setScheduledTextNotificationsEnabled(JSON.parse(scheduledTextSaved));
+      } else {
+        // Default to enabled and save the preference
+        setScheduledTextNotificationsEnabled(true);
+        await AsyncStorage.setItem('notifications_scheduled_texts_enabled', JSON.stringify(true));
       }
     } catch (error) {
       console.error('Error loading notification settings:', error);
