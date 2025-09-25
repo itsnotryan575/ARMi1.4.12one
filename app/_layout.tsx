@@ -156,6 +156,7 @@ export default function RootLayout() {
   const lastHandled = useRef<string | null>(null);
 
   const { setIsPro, setInitialized: setProInitialized } = usePro();
+  const { user } = useAuth();
 
   // Use the scheduled text notification responses hook
   useScheduledTextNotificationResponses();
