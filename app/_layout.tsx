@@ -17,6 +17,7 @@ import { DatabaseService } from '@/services/DatabaseService';
 import { router } from 'expo-router';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { AuthProvider } from '@/context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import { initRevenueCat, logOutRevenueCat, isPro } from '@/services/subscriptions';
 import { usePro } from '@/state/usePro';
 import AsyncStorage from '@react-native-async-storage/async-storage';
