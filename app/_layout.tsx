@@ -20,10 +20,10 @@ import { AuthProvider } from '@/context/AuthContext';
 import { useAuth } from '@/context/AuthContext';
 import { initRevenueCat, logOutRevenueCat, isPro } from '@/services/subscriptions';
 import { usePro } from '@/state/usePro';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { TEST_SCHEDULER_ONLY, NUDGES_ENABLED, DEBUG_SUBSCRIPTIONS } from '@/flags';
 import { registerNotificationCategories, ACTION_EDIT, ACTION_SEND, SCHEDULED_TEXT_CATEGORY } from '@/services/NotificationActions';
 import * as SMS from 'expo-sms';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Configure notification handler app-wide
 Notifications.setNotificationHandler({
@@ -141,6 +141,38 @@ function useScheduledTextNotificationResponses() {
   }
 }
 
+// Component that handles auth-dependent initialization
+function AuthInitializer() {
+  const { user } = useAuth();
+  const { setIsPro, setInitialized: setProInitialized } = usePro();
+
+  useEffect(() => {
+    const initializeRevenueCat = async () => {
+      try {
+        if (user?.id) {
+          console.log('Initializing RevenueCat for user:', user.id);
+          await initRevenueCat(user.id);
+          const proStatus = isPro();
+          setIsPro(proStatus);
+          console.log('RevenueCat initialized. Pro status:', proStatus);
+        } else {
+          // No user, reset pro status
+          setIsPro(false);
+        }
+        setProInitialized(true);
+      } catch (error) {
+        console.error('RevenueCat initialization error:', error);
+        setIsPro(false);
+        setProInitialized(true);
+      }
+    };
+    
+    initializeRevenueCat();
+  }, [user?.id, setIsPro, setProInitialized]);
+
+  return null; // This component doesn't render anything
+}
+
 export default function RootLayout() {
   const { isReady: isFrameworkReady, error } = useFrameworkReady();
   const colorScheme = useColorScheme();
@@ -155,9 +187,6 @@ export default function RootLayout() {
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const lastHandled = useRef<string | null>(null);
-
-  const { setIsPro, setInitialized: setProInitialized } = usePro();
-  const { user } = useAuth();
 
   // Use the scheduled text notification responses hook
   useScheduledTextNotificationResponses();
@@ -178,29 +207,6 @@ export default function RootLayout() {
       registerNotificationCategories();
       
       NotificationService.init();
-      
-      // Initialize RevenueCat when user is available
-      const initializeRevenueCat = async () => {
-        try {
-          if (user?.id) {
-            console.log('Initializing RevenueCat for user:', user.id);
-            await initRevenueCat(user.id);
-            const proStatus = isPro();
-            setIsPro(proStatus);
-            console.log('RevenueCat initialized. Pro status:', proStatus);
-          } else {
-            // No user, reset pro status
-            setIsPro(false);
-          }
-          setProInitialized(true);
-        } catch (error) {
-          console.error('RevenueCat initialization error:', error);
-          setIsPro(false);
-          setProInitialized(true);
-        }
-      };
-      
-      initializeRevenueCat();
       
       // Initialize random notifications if enabled
       const initRandomNotifications = async () => {
@@ -314,7 +320,7 @@ export default function RootLayout() {
         receivedSubscription.remove();
       };
     }
-  }, [isFrameworkReady, forceDelay, user?.id]);
+  }, [isFrameworkReady, forceDelay]);
 
   if (forceDelay || !isFrameworkReady) {
     return (
@@ -354,6 +360,7 @@ export default function RootLayout() {
     <ThemeProvider>
       <AuthProvider>
         <GestureHandlerRootView style={{ flex: 1 }}>
+          <AuthInitializer />
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="MiniNotifSmoke" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
