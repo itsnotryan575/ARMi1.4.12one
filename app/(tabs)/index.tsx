@@ -9,6 +9,8 @@ import { FilterModal } from '@/components/FilterModal';
 import { ListSelectorModal } from '@/components/ListSelectorModal';
 import { router } from 'expo-router';
 import { useTheme } from '@/context/ThemeContext';
+import { usePro } from '@/state/usePro';
+import { enforceProfileLimit, enforceListLimit } from '@/components/ProGate';
 
 export default function RosterScreen() {
   const [profiles, setProfiles] = useState([]);
