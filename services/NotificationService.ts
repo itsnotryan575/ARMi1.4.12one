@@ -432,40 +432,6 @@ class NotificationServiceClass {
       console.error('🔔 RANDOM NOTIF - Failed to stop random app notifications:', error);
     }
   }
-        const storedIds = await AsyncStorage.getItem('random_notification_ids');
-        if (storedIds) {
-          const ids = JSON.parse(storedIds);
-          const allScheduled = await Notifications.getAllScheduledNotificationsAsync();
-          const stillScheduled = ids.filter(id => 
-            allScheduled.some(notif => notif.identifier === id)
-          );
-          
-          if (stillScheduled.length === ids.length) {
-            console.log('🔔 RANDOM NOTIF - All notifications still scheduled, no action needed');
-            return;
-          } else {
-            console.log('🔔 RANDOM NOTIF - Some notifications missing, rescheduling...');
-          }
-        }
-        return;
-      }
-      
-      // Schedule new notifications for today
-      await this.scheduleRandomAppNotification();
-    } catch (error) {
-      console.error('🔔 RANDOM NOTIF - Failed to start random app notifications:', error);
-    }
-  }
-
-  async stopRandomAppNotifications() {
-    try {
-      console.log('🔔 RANDOM NOTIF - Stopping random app notifications...');
-      await this.cancelAllRandomNotifications();
-      console.log('🔔 RANDOM NOTIF - Random app notifications stopped');
-    } catch (error) {
-      console.error('🔔 RANDOM NOTIF - Failed to stop random app notifications:', error);
-    }
-  }
 
   async scheduleReminderNotification(reminder: {
     id: number;
