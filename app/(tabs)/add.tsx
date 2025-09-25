@@ -53,17 +53,20 @@ export default function AddInteractionScreen() {
       return;
     }
 
+    // Add user message to chat immediately
+    setChatMessages(prev => [...prev, { 
+      type: 'user', 
+      text: inputText 
+    }]);
+    
+    // Clear input field immediately
+    const currentInput = inputText.trim();
+    setInputText('');
     setIsProcessing(true);
     setError(null);
     try {
       // Use the new GPT service to understand user intent
-      const result = await understandUserCommand(inputText.trim(), {}, "lite");
-      
-      // Add user message to chat
-      setChatMessages(prev => [...prev, { 
-        type: 'user', 
-        text: inputText 
-      }]);
+      const result = await understandUserCommand(currentInput, {}, "lite");
       
       // Show preview for user confirmation
       setPreview(result);
@@ -74,9 +77,6 @@ export default function AddInteractionScreen() {
       
       // Add error message to chat
       setChatMessages(prev => [...prev, { 
-        type: 'user', 
-        text: inputText 
-      }, { 
         type: 'ai', 
         text: `Sorry, I had trouble understanding that: ${errorMessage}`
       }]);
@@ -170,7 +170,6 @@ export default function AddInteractionScreen() {
       
       // Reset form
       setPreview(null);
-      setInputText('');
       setSelectedImage(null);
       
       // Focus input for next interaction
