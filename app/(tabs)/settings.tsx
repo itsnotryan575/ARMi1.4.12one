@@ -1,13 +1,18 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, useColorScheme } from 'react-native';
-import { Settings, User, Bell, Shield, Palette, Info, ChevronRight, MessageSquare, LogOut, Share } from 'lucide-react-native';
+import { Settings, User, Bell, Shield, Palette, Info, ChevronRight, MessageSquare, LogOut, Share, Crown, RefreshCw } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
+import { usePro } from '@/state/usePro';
+import { restorePurchases, logOutRevenueCat } from '@/services/subscriptions';
+import { Alert, Linking } from 'react-native';
+import { DEBUG_SUBSCRIPTIONS } from '@/flags';
 
 export default function SettingsScreen() {
   const { isDark } = useTheme();
   const { signOut } = useAuth();
+  const { isPro } = usePro();
 
   const theme = {
     background: isDark ? '#0B0909' : '#003C24',
@@ -20,20 +25,46 @@ export default function SettingsScreen() {
 
   const settingsItems = [
     { icon: User, title: 'Account', subtitle: 'Manage your account', action: 'profile' },
+    { icon: Crown, title: 'Manage Subscription', subtitle: isPro ? 'ARMi Pro Active' : 'Upgrade to Pro', action: 'manage_subscription' },
+    { icon: RefreshCw, title: 'Restore Purchases', subtitle: 'Restore previous purchases', action: 'restore_purchases' },
     { icon: MessageSquare, title: 'Send Feedback', subtitle: 'Report bugs, suggest features', action: 'feedback' },
     { icon: Bell, title: 'Notifications', subtitle: 'Push notifications and alerts', action: 'notifications' },
     { icon: Share, title: 'Share Studio', subtitle: 'Create and share your ARMi cards', action: 'share' },
     { icon: Palette, title: 'Appearance', subtitle: 'Theme and display options', action: 'appearance' },
     { icon: Info, title: 'About', subtitle: 'App version and information', action: 'about' },
+    ...(DEBUG_SUBSCRIPTIONS ? [{ icon: Settings, title: 'Debug Subscriptions', subtitle: 'Developer tools', action: 'debug_subscriptions' }] : []),
     { icon: LogOut, title: 'Sign Out', subtitle: 'Sign out of your account', action: 'signout' },
   ];
 
   const handleSignOut = async () => {
     try {
+      await logOutRevenueCat();
       await signOut();
       router.replace('/auth/sign-in');
     } catch (error) {
       console.error('Sign out error:', error);
+    }
+  };
+
+  const handleManageSubscription = () => {
+    if (Platform.OS === 'ios') {
+      Linking.openURL('itms-apps://apps.apple.com/account/subscriptions');
+    } else {
+      Alert.alert('Manage Subscription', 'Please visit the Google Play Store to manage your subscription.');
+    }
+  };
+
+  const handleRestorePurchases = async () => {
+    try {
+      const success = await restorePurchases();
+      if (success) {
+        Alert.alert('Success', 'Purchases restored successfully!');
+      } else {
+        Alert.alert('Info', 'No purchases to restore or already restored.');
+      }
+    } catch (error) {
+      console.error('Restore purchases error:', error);
+      Alert.alert('Error', 'Failed to restore purchases. Please try again later.');
     }
   };
 
@@ -60,6 +91,10 @@ export default function SettingsScreen() {
               onPress={() => {
                 if (item.action === 'feedback') {
                   router.push('/feedback/submit');
+                } else if (item.action === 'manage_subscription') {
+                  handleManageSubscription();
+                } else if (item.action === 'restore_purchases') {
+                  handleRestorePurchases();
                 } else if (item.action === 'share') {
                   router.push('/(share)/ShareScreen');
                 } else if (item.action === 'profile') {
@@ -70,6 +105,8 @@ export default function SettingsScreen() {
                   router.push('/settings/notifications');
                 } else if (item.action === 'about') {
                   router.push('/settings/about');
+                } else if (item.action === 'debug_subscriptions') {
+                  router.push('/screens/DebugSubscriptionsScreen');
                 } else if (item.action === 'signout') {
                   handleSignOut();
                 }

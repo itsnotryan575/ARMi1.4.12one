@@ -20,6 +20,7 @@ export default function RosterScreen() {
   const [showListSelector, setShowListSelector] = useState(false);
   const [loading, setLoading] = useState(true);
   const { isDark, currentListType, setCurrentListType } = useTheme();
+  const { isPro } = usePro();
 
   const theme = {
     text: '#f0f0f0',
@@ -128,10 +129,16 @@ export default function RosterScreen() {
   };
 
   const handleAddPress = () => {
+    if (!isPro && !enforceProfileLimit(profiles.length)) {
+      return; // Limit exceeded, paywall shown
+    }
     router.push('/profile/create');
   };
 
   const handleListSelect = (listType: 'All' | 'Roster' | 'Network' | 'People') => {
+    if (!isPro && listType !== 'All' && !enforceListLimit(0)) {
+      return; // Limit exceeded, paywall shown
+    }
     setCurrentListType(listType);
     // Profiles will reload automatically due to the useEffect dependency on currentListType
   };

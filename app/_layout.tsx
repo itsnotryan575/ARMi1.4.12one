@@ -17,8 +17,10 @@ import { DatabaseService } from '@/services/DatabaseService';
 import { router } from 'expo-router';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { AuthProvider } from '@/context/AuthContext';
+import { initRevenueCat, logOutRevenueCat, isPro } from '@/services/subscriptions';
+import { usePro } from '@/state/usePro';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { TEST_SCHEDULER_ONLY, NUDGES_ENABLED } from '@/flags';
+import { TEST_SCHEDULER_ONLY, NUDGES_ENABLED, DEBUG_SUBSCRIPTIONS } from '@/flags';
 import { registerNotificationCategories, ACTION_EDIT, ACTION_SEND, SCHEDULED_TEXT_CATEGORY } from '@/services/NotificationActions';
 import * as SMS from 'expo-sms';
 
@@ -153,6 +155,8 @@ export default function RootLayout() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const lastHandled = useRef<string | null>(null);
 
+  const { setIsPro, setInitialized: setProInitialized } = usePro();
+
   // Use the scheduled text notification responses hook
   useScheduledTextNotificationResponses();
 
@@ -172,6 +176,29 @@ export default function RootLayout() {
       registerNotificationCategories();
       
       NotificationService.init();
+      
+      // Initialize RevenueCat when user is available
+      const initializeRevenueCat = async () => {
+        try {
+          if (user?.id) {
+            console.log('Initializing RevenueCat for user:', user.id);
+            await initRevenueCat(user.id);
+            const proStatus = isPro();
+            setIsPro(proStatus);
+            console.log('RevenueCat initialized. Pro status:', proStatus);
+          } else {
+            // No user, reset pro status
+            setIsPro(false);
+          }
+          setProInitialized(true);
+        } catch (error) {
+          console.error('RevenueCat initialization error:', error);
+          setIsPro(false);
+          setProInitialized(true);
+        }
+      };
+      
+      initializeRevenueCat();
       
       // Initialize random notifications if enabled
       const initRandomNotifications = async () => {
@@ -285,7 +312,7 @@ export default function RootLayout() {
         receivedSubscription.remove();
       };
     }
-  }, [isFrameworkReady, forceDelay]);
+  }, [isFrameworkReady, forceDelay, user?.id]);
 
   if (forceDelay || !isFrameworkReady) {
     return (
@@ -338,6 +365,13 @@ export default function RootLayout() {
             <Stack.Screen name="profile/edit/[id]" options={{ headerShown: false }} />
             <Stack.Screen name="settings/appearance" options={{ headerShown: false }} />
             <Stack.Screen name="settings/profile" options={{ headerShown: false }} />
+            <Stack.Screen name="settings/notifications" options={{ headerShown: false }} />
+            <Stack.Screen name="settings/about" options={{ headerShown: false }} />
+            <Stack.Screen name="feedback/submit" options={{ headerShown: false }} />
+            <Stack.Screen name="screens/PaywallScreen" options={{ headerShown: false }} />
+            {DEBUG_SUBSCRIPTIONS && (
+              <Stack.Screen name="screens/DebugSubscriptionsScreen" options={{ headerShown: false }} />
+            )}
             <Stack.Screen name="+not-found" />
           </Stack>
         </GestureHandlerRootView>

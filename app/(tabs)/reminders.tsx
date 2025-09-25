@@ -8,6 +8,8 @@ import { EditReminderModal } from '../../components/EditReminderModal';
 import { DatabaseService } from '@/services/DatabaseService';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '@/context/ThemeContext';
+import { enforceReminderLimit } from '@/components/ProGate';
+import { usePro } from '@/state/usePro';
 
 const REMINDER_TYPE_COLORS = {
   all: '#6B7280',
@@ -27,6 +29,7 @@ export default function RemindersScreen() {
   const [reminders, setReminders] = useState([]);
   const [loading, setLoading] = useState(true);
   const { isDark } = useTheme();
+  const { isPro } = usePro();
 
   const colors = {
     background: isDark ? '#0B0909' : '#003C24',
@@ -118,6 +121,20 @@ export default function RemindersScreen() {
     loadReminders(); // Refresh the list
   };
 
+  const handleAddReminderPress = async () => {
+    if (!isPro) {
+      try {
+        const currentMonthReminders = await DatabaseService.countRemindersForCurrentMonth();
+        if (!enforceReminderLimit(currentMonthReminders)) {
+          return; // Limit exceeded, paywall shown
+        }
+      } catch (error) {
+        console.error('Error checking reminder limit:', error);
+      }
+    }
+    setAddReminderModalVisible(true);
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
@@ -127,7 +144,7 @@ export default function RemindersScreen() {
         <View style={styles.headerActions}>
           <TouchableOpacity
             style={[styles.headerButton, { backgroundColor: colors.secondary, borderColor: colors.border }]}
-            onPress={() => setAddReminderModalVisible(true)}
+            onPress={handleAddReminderPress}
           >
             <Plus size={20} color="#FFFFFF" />
           </TouchableOpacity>
@@ -222,7 +239,7 @@ export default function RemindersScreen() {
               {selectedFilter === 'all' && (
                 <TouchableOpacity
                   style={[styles.emptyActionButton, { backgroundColor: colors.secondary }]}
-                  onPress={() => setAddReminderModalVisible(true)}
+                  onPress={handleAddReminderPress}
                 >
                   <Plus size={20} color="#FFFFFF" />
                   <Text style={styles.emptyActionButtonText}>Add Your First Reminder</Text>

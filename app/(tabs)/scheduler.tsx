@@ -17,6 +17,8 @@ import { ScheduledTextCard } from '@/components/ScheduledTextCard';
 import { DatabaseService } from '@/services/DatabaseService';
 import { useFocusEffect } from '@react-navigation/native';
 import { cancelById } from '@/services/Scheduler';
+import { enforceScheduledTextLimit } from '@/components/ProGate';
+import { usePro } from '@/state/usePro';
 
 export default function SchedulerScreen() {
   const { isDark } = useTheme();
@@ -26,6 +28,7 @@ export default function SchedulerScreen() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedTextForEdit, setSelectedTextForEdit] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { isPro } = usePro();
 
   const theme = {
     text: '#f0f0f0',
@@ -102,6 +105,20 @@ export default function SchedulerScreen() {
     setShowEditModal(false);
     setSelectedTextForEdit(null);
     loadScheduledTexts();
+  };
+
+  const handleAddScheduledTextPress = async () => {
+    if (!isPro) {
+      try {
+        const currentMonthScheduledTexts = await DatabaseService.countScheduledTextsForCurrentMonth();
+        if (!enforceScheduledTextLimit(currentMonthScheduledTexts)) {
+          return; // Limit exceeded, paywall shown
+        }
+      } catch (error) {
+        console.error('Error checking scheduled text limit:', error);
+      }
+    }
+    setShowAddModal(true);
   };
 
   const handleTextDelete = async (textId: number) => {
@@ -189,7 +206,7 @@ export default function SchedulerScreen() {
         <Text style={[styles.title, { color: theme.text }]}>Text Scheduler</Text>
         <TouchableOpacity
           style={[styles.addButton, { backgroundColor: theme.secondary }]}
-          onPress={handleAddScheduledText}
+          onPress={handleAddScheduledTextPress}
         >
           <Plus size={20} color="#FFFFFF" />
         </TouchableOpacity>
@@ -213,7 +230,7 @@ export default function SchedulerScreen() {
           </Text>
           <TouchableOpacity
             style={[styles.emptyActionButton, { backgroundColor: theme.secondary }]}
-            onPress={handleAddScheduledText}
+            onPress={handleAddScheduledTextPress}
           >
             <Plus size={20} color="#FFFFFF" />
             <Text style={styles.emptyActionButtonText}>Schedule Your First Text</Text>

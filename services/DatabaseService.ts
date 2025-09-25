@@ -721,6 +721,56 @@ class DatabaseServiceClass {
     await this.db!.runAsync('DELETE FROM profiles WHERE id = ?', [profileId]);
   }
 
+  async countProfiles(): Promise<number> {
+    await this.ensureReady();
+    
+    if (this.isWebFallback) {
+      return 5; // Mock count for web
+    }
+    
+    const result = await this.db!.getFirstAsync('SELECT COUNT(*) as count FROM profiles');
+    return result?.count || 0;
+  }
+
+  async countRemindersForCurrentMonth(): Promise<number> {
+    await this.ensureReady();
+    
+    if (this.isWebFallback) {
+      return 3; // Mock count for web
+    }
+    
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+    const endOfMonth = new Date(startOfMonth.getFullYear(), startOfMonth.getMonth() + 1, 0);
+    endOfMonth.setHours(23, 59, 59, 999);
+
+    const result = await this.db!.getFirstAsync(
+      'SELECT COUNT(*) as count FROM reminders WHERE scheduledFor BETWEEN ? AND ? AND completed = 0',
+      [startOfMonth.toISOString(), endOfMonth.toISOString()]
+    );
+    return result?.count || 0;
+  }
+
+  async countScheduledTextsForCurrentMonth(): Promise<number> {
+    await this.ensureReady();
+    
+    if (this.isWebFallback) {
+      return 2; // Mock count for web
+    }
+    
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+    const endOfMonth = new Date(startOfMonth.getFullYear(), startOfMonth.getMonth() + 1, 0);
+    endOfMonth.setHours(23, 59, 59, 999);
+
+    const result = await this.db!.getFirstAsync(
+      'SELECT COUNT(*) as count FROM scheduled_texts WHERE scheduledFor BETWEEN ? AND ? AND sent = 0',
+      [startOfMonth.toISOString(), endOfMonth.toISOString()]
+    );
+    return result?.count || 0;
+  }
   async createScheduledText(textData: any) {
     await this.ensureReady();
     
